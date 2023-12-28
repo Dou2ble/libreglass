@@ -1,13 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type IcemanResponse[T any] struct {
@@ -51,7 +52,7 @@ func getNearestSTops(minLon, minLat, maxLon, maxLat float64, limit int32) (Icema
 	params.Add("maxLat", fmt.Sprint(maxLat))
 	params.Add("limit", fmt.Sprint(limit))
 
-	url := fmt.Sprintf("%s?%s", IcemanProdTrackerUrl+"/getNearestStops", params.Encode())
+	url := IcemanProdTrackerUrl + "/getNearestStops?" + params.Encode()
 
 	response, err := http.Get(url)
 	if err != nil {
@@ -73,7 +74,7 @@ func getSalesInfoByStop(stopId int) (IcemanResponse[SalesInfo], error) {
 
 	params := url.Values{}
 	params.Add("stopId", fmt.Sprint(stopId))
-	url := fmt.Sprintf("%s?%s", IcemanProdTrackerUrl+"/getSalesInfoByStop", params.Encode())
+	url := IcemanProdTrackerUrl + "/getSalesInfoByStop?" + params.Encode()
 
 	response, err := http.Get(url)
 	if err != nil {
@@ -90,29 +91,87 @@ func getSalesInfoByStop(stopId int) (IcemanResponse[SalesInfo], error) {
 	return result, err
 }
 
-// // https://iceman-prod.azurewebsites.net/api/tracker/getVisitedStops/?lastTimeCalled=23:16
-// func getVisitedStops(lastTimeCalled time.Time) {
-// 	var result IcemanResponse[SalesInfo]
+// https://iceman-prod.azurewebsites.net/api/tracker/stopsEta?stopId=3151822&routeId=37704
 
-// 	params := url.Values{}
-// 	params.Add("stopId", fmt.Sprint(stopId))
-// 	url := fmt.Sprintf("%s?%s", IcemanProdTrackerUrl+"/getSalesInfoByStop", params.Encode())
-// }
+func stopsEta(stopId int, routeId int) (IcemanResponse[string], error) {
+	var result IcemanResponse[string]
+
+	params := url.Values{}
+	params.Add("stopId", fmt.Sprint(stopId))
+	params.Add("routeId", fmt.Sprint(routeId))
+	url := IcemanProdTrackerUrl + "/getSalesInfoByStop?" + params.Encode()
+
+	response, err := http.Get(url)
+	if err != nil {
+		return result, err
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return result, err
+	}
+
+	err = json.Unmarshal(body, &result)
+	return result, err
+}
+
+// TODO: this function should not return a string. but ATM i don't know what the data type is
+func getVisitedStops(lastTimeCalled *time.Time, routeIds []int) (string, error) {
+	var result string
+
+	// if lastTimeCalled dose exsist then we should format it and save it in a new variable otherwise it should be empty
+	lastTimeCalledString := ""
+	if lastTimeCalled != nil {
+		lastTimeCalledString = lastTimeCalled.Format("15:04")
+	}
+
+	params := url.Values{}
+	params.Add("lastTimeCalled", lastTimeCalledString)
+	url := IcemanProdTrackerUrl + "/getVisitedStops?" + params.Encode()
+
+	// Convert the array of ints to a JSON-encoded request body
+	requestBody, err := json.Marshal(map[string][]int{"routeIds": routeIds})
+	if err != nil {
+		return result, err
+	}
+
+	response, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return result, err
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return result, nil
+	}
+
+	return string(body), nil
+}
 
 func main() {
-	res, err := getNearestSTops(11.0274, 55.3618, 24.1935, 69.0605, math.MaxInt32)
+	uwu := []int{13, 12, 12, 12}
+	result, err := getVisitedStops(nil, uwu)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Println(res)
-	fmt.Println(len(res.Data))
 
-	// fmt.Println()
-	// fmt.Println()
+	fmt.Println(result)
 
-	// resp, err := getSalesInfoByStop(3160106)
+	// res, err := getNearestSTops(11.0274, 55.3618, 24.1935, 69.0605, math.MaxInt32)
 	// if err != nil {
 	// 	log.Fatalln(err)
 	// }
-	// fmt.Println(resp)
+	// fmt.Println(res)
+	// fmt.Println(len(res.Data))
+
+	// // fmt.Println()
+	// // fmt.Println()
+
+	// // resp, err := getSalesInfoByStop(3160106)
+	// // if err != nil {
+	// // 	log.Fatalln(err)
+	// // }
+	// // fmt.Println(resp)
 }
