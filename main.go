@@ -91,8 +91,6 @@ func getSalesInfoByStop(stopId int) (IcemanResponse[SalesInfo], error) {
 	return result, err
 }
 
-// https://iceman-prod.azurewebsites.net/api/tracker/stopsEta?stopId=3151822&routeId=37704
-
 func stopsEta(stopId int, routeId int) (IcemanResponse[string], error) {
 	var result IcemanResponse[string]
 
@@ -150,6 +148,11 @@ func getVisitedStops(lastTimeCalled *time.Time, routeIds []int) (string, error) 
 	return string(body), nil
 }
 
+// // https://iceman-prod.azurewebsites.net/api/tracker/liverouteinfo/37816
+// func liveRouteInfo(routeId int) {
+
+// }
+
 func main() {
 	uwu := []int{13, 12, 12, 12}
 	result, err := getVisitedStops(nil, uwu)
@@ -158,20 +161,4 @@ func main() {
 	}
 
 	fmt.Println(result)
-
-	// res, err := getNearestSTops(11.0274, 55.3618, 24.1935, 69.0605, math.MaxInt32)
-	// if err != nil {
-	// 	log.Fatalln(err)
-	// }
-	// fmt.Println(res)
-	// fmt.Println(len(res.Data))
-
-	// // fmt.Println()
-	// // fmt.Println()
-
-	// // resp, err := getSalesInfoByStop(3160106)
-	// // if err != nil {
-	// // 	log.Fatalln(err)
-	// // }
-	// // fmt.Println(resp)
 }
